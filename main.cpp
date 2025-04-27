@@ -23,6 +23,50 @@ enum class PetWeight : int
     Unknown
 };
 
+enum class FeedingMannerEnum : int
+{
+    Meat,
+    Fish,
+    Pate,
+    None
+};
+
+class FeedingStrategy
+{
+public:
+  virtual ~FeedingStrategy() {}
+  virtual void Feed() = 0;
+};
+
+class MeatFeedingStrategy : public FeedingStrategy
+{
+  void Feed() { cout << "Feed pet with meat"; }
+};
+
+class FishFeedingStrategy : public FeedingStrategy
+{
+  void Feed() { cout << "Feed pet with fish"; }
+};
+
+class PateFeedingStrategy : public FeedingStrategy
+{
+  void Feed() { cout << "Feed pet with pate"; }
+};
+
+
+// Р¤Р°Р±СЂРёС‡РЅС‹Р№ РјРµС‚РѕРґ РґР»СЏ СЃРѕР·РґР°РЅРёСЏ СЃС‚СЂР°С‚РµРіРёР№
+FeedingStrategy *CreateFeedingStrategy(FeedingMannerEnum feedingManner)
+{
+  switch(feedingManner)
+  {
+    case FeedingMannerEnum::Meat: return new MeatFeedingStrategy;
+    case FeedingMannerEnum::Fish: return new FishFeedingStrategy;
+    case FeedingMannerEnum::Pate: return new PateFeedingStrategy;
+
+    default: return nullptr;
+  }
+}
+
 class Pet
 {
 private:
@@ -31,19 +75,51 @@ private:
     string Pocritie;
     double Length;
 
+    FeedingStrategy *FeedingManner;
+
+    void DoFeedUsingStrategy()
+    {
+      if(FeedingManner == nullptr)
+      {
+        // РЎРїРѕСЃРѕР± СЃСЉРµРґР°РЅРёСЏ РЅРµ Р·Р°РґР°РЅ, РЅРёС‡РµРіРѕ РЅРµ РґРµР»Р°РµРј
+        cout << "Do nothing!";
+        return;
+      }
+      else
+      {
+        // РЎСЉРµСЃС‚СЊ Р·Р°РґР°РЅРЅС‹Рј СЃРїРѕСЃРѕР±РѕРј
+        FeedingManner->Feed();
+      }
+    }
+
+    void DetectKindOrNot()
+    {
+      if(IsKind())
+      {
+          cout << "KIND";
+      }
+      else
+      {
+          cout << "BAD";
+      }
+    }
+
 protected:
     bool PetIsKind;
 
 public:
     //Pet(PetAge age, double weight, double length);
     //Pet::Pet(PetAge age, double weight, double length) : Age(age), Weight(weight), Pocritie("wool"), Length(length), PetIsKind(false)
-    Pet(PetAge age, PetWeight weight, double length) : Age(age), Weight(weight), Pocritie("wool"), Length(length), PetIsKind(false)
+    Pet(PetAge age, PetWeight weight, double length) : Age(age), Weight(weight), Pocritie("wool"), Length(length), PetIsKind(false), FeedingManner(nullptr)
 {
     PetIsKind = static_cast<bool>(rand()%2);
 }
-    virtual ~Pet();
+    virtual ~Pet()
+    {
+        if(FeedingManner != nullptr) delete FeedingManner;
+    }
 
-    // Функция с реализацией
+    // Р¤СѓРЅРєС†РёСЏ СЃ СЂРµР°Р»РёР·Р°С†РёРµР№
     bool IsKind() const { return PetIsKind; }
 
     PetAge GetAge() const { return Age; }
@@ -51,16 +127,34 @@ public:
     string GetPocritie() const { return Pocritie; }
     double GetLength() const { return Length; }
 
-    virtual void Touch() = 0;
-    virtual void Feed() = 0;
-    virtual void Walk() = 0;
-};
+    //virtual void Feed() = 0;
 
-// Реализация деструктора
-Pet::~Pet()
-{
-    cout << "Deleting Pet..." << endl;
-}
+    virtual void PrintType() = 0;
+    virtual void Prepare() = 0;
+
+    void Feed()
+    {
+        // 1. Р’С‹РІРµСЃС‚Рё РЅР°Р·РІР°РЅРёРµ Р¶РёРІРѕС‚РЅРѕРіРѕ
+        PrintType();
+        cout << " : ";
+
+        // 2. РћРїСЂРµРґРµР»РёС‚СЊ, РґРѕР±СЂРѕРµ Р¶РёРІРѕС‚РЅРѕРµ РёР»Рё РЅРµС‚
+        DetectKindOrNot();
+        cout << " : ";
+
+        // 2.1 РџРѕРґРіРѕС‚РѕРІРёС‚СЊ РµРґСѓ
+        Prepare();
+        cout << " : ";
+
+        // 3. Р•СЃР»Рё РґРѕР±СЂРѕРµ, СЃСЉРµСЃС‚СЊ СЃ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµРј РІС‹Р±СЂР°РЅРЅРѕР№ СЃС‚СЂР°С‚РµРіРёРё
+        DoFeedUsingStrategy();
+
+        // 4. РљРѕРЅРµС† Р°Р»РіРѕСЂРёС‚РјР°
+        cout << endl;
+    }
+
+    void SetFeedingManner(FeedingStrategy *feedingManner) { FeedingManner = feedingManner; }
+};
 
 class Dog : public Pet
 {
@@ -70,38 +164,22 @@ public:
 
     string GetPocritie() const;
 
-    void Touch();
     void Feed();
-    void Walk();
+    void PrintType() { cout << "Dog";}
+    void Prepare() { cout << "Prepare food with a knife"; }
 };
-// Реализация конструктора
+// Р РµР°Р»РёР·Р°С†РёСЏ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР°
 Dog::Dog() : Pet(PetAge::Five, PetWeight::Fifteen, 1.2)
 {
-    PetIsKind = true;
-
-    cout << "Creating Dog..." << endl;
-}
-// Реализация деструктора
-Dog::~Dog()
-{
-    cout << "Deleting Dog..." << endl;
-}
-string Dog::GetPocritie() const
-{
-    cout << "Dog Pocritie: " << Pet::GetPocritie() << endl;
-    return Pet::GetPocritie();
-}
-void Dog::Touch()
-{
-    cout << "Touching Dog..." << endl;
+    SetFeedingManner(CreateFeedingStrategy(FeedingMannerEnum::Meat));
 }
 void Dog::Feed()
 {
-   cout << "Feeding Dog..." << endl;
+    cout << "Feeding Weasel..." << endl;
 }
-void Dog::Walk()
+Dog::~Dog()
 {
-   cout << "Walking Dog..." << endl;
+    cout << "Deleting Dog..." << endl;
 }
 
 class Cat : public Pet
@@ -112,38 +190,22 @@ public:
 
     string GetPocritie() const;
 
-    void Touch();
     void Feed();
-    void Walk();
+    void PrintType() { cout << "Cat"; }
+    void Prepare() { cout << "Prepare food using special tools"; }
 };
 
 Cat::Cat() : Pet(PetAge::Three, PetWeight::Three, 0.7)
 {
-    PetIsKind = true;
-
-    cout << "Creating Cat..." << endl;
-}
-
-Cat::~Cat()
-{
-    cout << "Deleting Cat..." << endl;
-}
-string Cat::GetPocritie() const
-{
-    cout << "Cat Pocritie: " << Pet::GetPocritie() << endl;
-    return Pet::GetPocritie();
-}
-void Cat::Touch()
-{
-    cout << "Touching Cat..." << endl;
+    SetFeedingManner(CreateFeedingStrategy(FeedingMannerEnum::Fish));
 }
 void Cat::Feed()
 {
     cout << "Feeding Cat..." << endl;
 }
-void Cat::Walk()
+Cat::~Cat()
 {
-    cout << "Walking Cat..." << endl;
+    cout << "Deleting Cat..." << endl;
 }
 
 class Weasel : public Pet
@@ -154,38 +216,22 @@ public:
 
     string GetPocritie() const;
 
-    void Touch();
     void Feed();
-    void Walk();
+    void PrintType() { cout << "Weasel"; }
+    void Prepare() { cout << "Prepare food using a meat grinder"; }
 };
 
 Weasel::Weasel() : Pet(PetAge::One, PetWeight::One, 0.2)
 {
-    PetIsKind = true;
-
-    //cout << "Creating Weasel..." << endl;
-}
-
-Weasel::~Weasel()
-{
-    //cout << "Deleting Weasel..." << endl;
-}
-string Weasel::GetPocritie() const
-{
-   // cout << "Weasel Pocritie: " << Pet::GetPocritie() << endl;
-    return Pet::GetPocritie();
-}
-void Weasel::Touch()
-{
-    cout << "Touching Weasel..." << endl;
+    SetFeedingManner(CreateFeedingStrategy(FeedingMannerEnum::Pate));
 }
 void Weasel::Feed()
 {
     cout << "Feeding Weasel..." << endl;
 }
-void Weasel::Walk()
+Weasel::~Weasel()
 {
-    cout << "Walking Weasel..." << endl;
+    cout << "Deleting Weasel..." << endl;
 }
 
 enum class PetType : int
@@ -302,28 +348,12 @@ public:
     }
 };
 
-void TouchAll(Iterator<Pet*> *it)
-{
-    for(it->First(); !it->IsDone(); it->Next())
-    {
-        Pet *currentPet = it->GetCurrent();
-        currentPet->Touch();
-    }
-}
 void FeedAll(Iterator<Pet*> *it)
 {
     for(it->First(); !it->IsDone(); it->Next())
     {
         Pet *currentPet = it->GetCurrent();
         currentPet->Feed();
-    }
-}
-void WalkAll(Iterator<Pet*> *it)
-{
-    for(it->First(); !it->IsDone(); it->Next())
-    {
-        Pet *currentPet = it->GetCurrent();
-        currentPet->Walk();
     }
 }
 
@@ -336,77 +366,77 @@ int main()
     ArrayClass<Pet*> petArray;
     for(size_t i=0; i<N; i++)
     {
-        int pet_num = rand()%3+1; // Число от 1 до 3 (случайный фрукт)
+        int pet_num = rand()%3+1; // Р§РёСЃР»Рѕ РѕС‚ 1 РґРѕ 3
         PetType pet_type = static_cast<PetType>(pet_num);
         Pet *newPet = CreatePet(pet_type);
         petArray.Add(newPet);
     }
 
     cout << endl;
-    wcout << L"Размер массива животных: " << petArray.Size() << endl;
+    wcout << L"Р Р°Р·РјРµСЂ РјР°СЃСЃРёРІР° Р¶РёРІРѕС‚РЅС‹С…: " << petArray.Size() << endl;
 
     list<Pet*> petVector;
     cout << endl;
     for(size_t i=0; i<N; i++)
     {
-        int pet_num = rand()%3+1; // Число от 1 до 3
+        int pet_num = rand()%3+1; // Р§РёСЃР»Рѕ РѕС‚ 1 РґРѕ 3
         PetType pet_type = static_cast<PetType>(pet_num);
         Pet *newPet = CreatePet(pet_type);
         petVector.push_back(newPet);
     }
 
     cout << endl;
-    wcout << L"Размер списка животных: " << petVector.size() << endl;
+    wcout << L"Р Р°Р·РјРµСЂ СЃРїРёСЃРєР° Р¶РёРІРѕС‚РЅС‹С…: " << petVector.size() << endl;
 
-    // Обход в простом цикле
-    cout << endl << "Touching all in a simple loop:" << endl;
+    // РћР±С…РѕРґ РІ РїСЂРѕСЃС‚РѕРј С†РёРєР»Рµ
+    cout << endl << "Feeding all in a simple loop:" << endl;
     for(size_t i=0; i<petArray.Size(); i++)
     {
         Pet *currentPet = petArray[i];
-        currentPet->Touch();
+        currentPet->Feed();
     }
 
-    // Обход всех элементов при помощи итератора
-    cout << endl << "Touching all using iterator:" << endl;
+    // РћР±С…РѕРґ РІСЃРµС… СЌР»РµРјРµРЅС‚РѕРІ РїСЂРё РїРѕРјРѕС‰Рё РёС‚РµСЂР°С‚РѕСЂР°
+    cout << endl << "Feeding all using iterator:" << endl;
     Iterator<Pet*> *allIt = petArray.GetIterator();
-    TouchAll(allIt);
+    FeedAll(allIt);
     delete allIt;
 
-    // Обход всех добрых животных
+    // РћР±С…РѕРґ РІСЃРµС… РґРѕР±СЂС‹С… Р¶РёРІРѕС‚РЅС‹С…
     cout << endl << "Feeding all kind using iterator:" << endl;
     Iterator<Pet*> *kindIt = new PetKindDecorator(petArray.GetIterator(), true);
     FeedAll(kindIt);
     delete kindIt;
 
-    // Обход всех пятилетних животных
-    cout << endl << "Walking all five age using iterator:" << endl;
+    // РћР±С…РѕРґ РІСЃРµС… РїСЏС‚РёР»РµС‚РЅРёС… Р¶РёРІРѕС‚РЅС‹С…
+    cout << endl << "Feeding all five age using iterator:" << endl;
     Iterator<Pet*> *fiveIt = new PetAgeDecorator(petArray.GetIterator(), PetAge::Five);
-    WalkAll(fiveIt);
+    FeedAll(fiveIt);
     delete fiveIt;
 
-    // Обход всех килограммовых животных
-    cout << endl << "Touching all one weight using iterator:" << endl;
+    // РћР±С…РѕРґ РІСЃРµС… РєРёР»РѕРіСЂР°РјРјРѕРІС‹С… Р¶РёРІРѕС‚РЅС‹С…
+    cout << endl << "Feeding all one weight using iterator:" << endl;
     Iterator<Pet*> *oneIt = new PetWeightDecorator(petArray.GetIterator(), PetWeight::One);
-    TouchAll(oneIt);
+    FeedAll(oneIt);
     delete oneIt;
 
-    // Обход всех добрых пятилетних животных
+    // РћР±С…РѕРґ РІСЃРµС… РґРѕР±СЂС‹С… РїСЏС‚РёР»РµС‚РЅРёС… Р¶РёРІРѕС‚РЅС‹С…
     cout << endl << "Feeding all kind five age using iterator:" << endl;
     Iterator<Pet*> *kindFiveIt = new PetKindDecorator(new PetAgeDecorator(petArray.GetIterator(), PetAge::Five), true);
     FeedAll(kindFiveIt);
     delete kindFiveIt;
 
-    // Обход всех добрых килограммовых животных
-    cout << endl << "Walking all kind one weight using iterator:" << endl;
+    // РћР±С…РѕРґ РІСЃРµС… РґРѕР±СЂС‹С… РєРёР»РѕРіСЂР°РјРјРѕРІС‹С… Р¶РёРІРѕС‚РЅС‹С…
+    cout << endl << "Feeding all kind one weight using iterator:" << endl;
     Iterator<Pet*> *kindOneIt = new PetKindDecorator(new PetWeightDecorator(petArray.GetIterator(), PetWeight::One), true);
-    WalkAll(kindOneIt);
+    FeedAll(kindOneIt);
     delete kindOneIt;
 
-    // Демонстрация работы адаптера
-    cout << endl << "Touching all kind five age using adapted iterator (another container):" << endl;
+    // Р”РµРјРѕРЅСЃС‚СЂР°С†РёСЏ СЂР°Р±РѕС‚С‹ Р°РґР°РїС‚РµСЂР°
+    cout << endl << "Feeding all kind five age using adapted iterator (another container):" << endl;
     Iterator<Pet*> *adaptedIt = new ConstIteratorAdapter<std::list<Pet*>, Pet*>(&petVector);
     Iterator<Pet*> *adaptedFiveIt = new PetKindDecorator(new PetAgeDecorator(adaptedIt, PetAge::Five), true);
-    TouchAll(adaptedFiveIt);
+    FeedAll(adaptedFiveIt);
     delete adaptedFiveIt;
 
     return 0;
